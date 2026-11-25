@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Game Shop</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #070B28;
+            --card-bg: linear-gradient(180deg, rgba(12, 22, 58, 0.96) 0%, rgba(5, 10, 32, 0.98) 100%);
+            --text-color: #f8fbff;
+            --border-color: rgba(75, 214, 255, 0.14);
+            --accent-color: #47f28f;
+            --active-bg: rgba(71, 242, 143, 0.15);
+            --active-border: #47f28f;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: sans-serif;
+            padding-bottom: 80px;
+        }
+
+        /* Fullscreen Language Selector Overlay */
+        .lang-fullscreen-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top, #13235c 0%, #050920 75%);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .lang-fullscreen-overlay.d-none {
+            display: none !important;
+        }
+
+        .lang-selector-box {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        .lang-choice-btn {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-color);
+            font-size: 1.05rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-choice-btn:hover,
+        .lang-choice-btn.active {
+            border-color: var(--accent-color);
+            background: var(--active-bg);
+            color: var(--accent-color);
+        }
+
+        /* Top Navigation */
+        .navbar {
+            background-color: #010b3b;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .balance-badge {
+            background: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .balance-badge:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Search Box */
+        .search-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .search-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Grid Layout */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .game-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 15px;
+            }
+        }
+
+        /* Game Cards */
+        .game-card {
+            display: block;
+            border-radius: 8px;
+            overflow: hidden;
+            text-decoration: none;
+            transition: transform 0.2s;
+            border: 1px solid rgba(75, 214, 255, 0.05);
+        }
+
+        .game-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(75, 214, 255, 0.4);
+        }
+
+        .game-thumb {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: linear-gradient(135deg, #1a244d 0%, #0c122b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .thumb-title {
+            color: #dbe8ff;
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1.3;
+            word-wrap: break-word;
+        }
+
+        .empty-state {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content {
+            background: #0c163a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            color: white;
+        }
+
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fullscreen Language Selection Overlay -->
+    <div id="langOverlay" class="lang-fullscreen-overlay d-none" role="dialog" aria-modal="true" aria-labelledby="langOverlayTitle">
+        <div class="lang-selector-box">
+            <h4 id="langOverlayTitle" class="mb-2 fw-bold">Select Language</h4>
+            <p id="langOverlaySub" class="text-secondary small mb-4">Choose your preferred language</p>
+
+            <div class="d-flex flex-column gap-3">
+                <button type="button" class="lang-choice-btn" data-lang="en">
+                    <span>🇺🇸 English</span>
+                    <span>EN</span>
+                </button>
+                <button type="button" class="lang-choice-btn" data-lang="ja">
+                    <span>🇯🇵 日本語</span>
+                    <span>JA</span>
+                </button>
+                <button type="button" class="lang-choice-btn" data-lang="my">
+                    <span>🇲🇲 မြန်မာဘာသာ</span>
+                    <span>MY</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Navigation -->
+    <nav class="navbar sticky-top px-3 py-2">
+        <div class="d-flex align-items-center gap-2">
+            <a href="#" class="balance-badge" data-bs-toggle="modal" data-bs-target="#accountModal">
+                <span id="coin">0</span> JPY
+            </a>
+            <small id="accountLabel" class="text-info">Not created</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" id="openLangOverlayBtn" class="btn btn-outline-light btn-sm">
+                🌐 <span id="currentLangCode">EN</span>
+            </button>
+            <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#accountModal" aria-label="Account and Wallet">=</button>
+        </div>
+    </nav>
+
+    <div class="container mt-4" style="max-width: 800px;">
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search games...">
+        </div>
+
+        <h5 id="featuredHeading" class="mb-3" style="color: #47f28f;">★ Featured Games</h5>
+        <div class="game-grid" id="gamesGrid">
+            <a href="product.html?game=mlbb&title=Mobile%20Legends" class="game-card" data-name="mobile legends mlbb">
+                <div class="game-thumb"><span class="thumb-title">Mobile Legends</span></div>
+            </a>
+            <a href="product.html?game=pubg&title=PUBG%20Mobile" class="game-card" data-name="pubg mobile">
+                <div class="game-thumb"><span class="thumb-title">PUBG Mobile</span></div>
+            </a>
+            <a href="product.html?game=magic-chess-go-go&title=Magic%20Chess%3A%20Go%20Go" class="game-card" data-name="magic chess go go">
+                <div class="game-thumb"><span class="thumb-title">Magic Chess: Go Go</span></div>
+            </a>
+            <a href="product.html?game=ragnarok-m-classic&title=Ragnarok%20M%20Classic" class="game-card" data-name="ragnarok m classic">
+                <div class="game-thumb"><span class="thumb-title">Ragnarok M Classic</span></div>
+            </a>
+            <a href="product.html?game=love-and-deepspace&title=Love%20and%20Deepspace" class="game-card" data-name="love and deepspace">
+                <div class="game-thumb"><span class="thumb-title">Love and Deepspace</span></div>
+            </a>
+            <a href="product.html?game=honor-of-kings&title=Honor%20of%20Kings" class="game-card" data-name="honor of kings">
+                <div class="game-thumb"><span class="thumb-title">Honor of Kings</span></div>
+            </a>
+            <a href="product.html?game=watcher-of-realms&title=Watcher%20of%20Realms" class="game-card" data-name="watcher of realms">
+                <div class="game-thumb"><span class="thumb-title">Watcher of Realms</span></div>
+            </a>
+            <a href="product.html?game=dark-age-of-war-of-gods&title=Dark%20Age%3A%20War%20of%20Gods" class="game-card" data-name="dark age war of gods">
+                <div class="game-thumb"><span class="thumb-title">Dark Age: War of Gods</span></div>
+            </a>
+            <a href="product.html?game=land-of-empires&title=Land%20of%20Empires" class="game-card" data-name="land of empires">
+                <div class="game-thumb"><span class="thumb-title">Land of Empires</span></div>
+            </a>
+            <a href="product.html?game=mobile-legends-adventure&title=Mobile%20Legends%3A%20Adventure" class="game-card" data-name="mobile legends adventure">
+                <div class="game-thumb"><span class="thumb-title">Mobile Legends: Adventure</span></div>
+            </a>
+            <a href="product.html?game=lords-mobile&title=Lords%20Mobile%3A%20Kingdom%20Wars" class="game-card" data-name="lords mobile kingdom wars">
+                <div class="game-thumb"><span class="thumb-title">Lords Mobile: Kingdom Wars</span></div>
+            </a>
+            <a href="product.html?game=doomsday-last-survivors&title=Doomsday%3A%20Last%20Survivors" class="game-card" data-name="doomsday last survivors">
+                <div class="game-thumb"><span class="thumb-title">Doomsday: Last Survivors</span></div>
+            </a>
+            <a href="product.html?game=viking-rise&title=Viking%20Rise" class="game-card" data-name="viking rise">
+                <div class="game-thumb"><span class="thumb-title">Viking Rise</span></div>
+            </a>
+            <a href="product.html?game=blood-strike&title=Blood%20Strike" class="game-card" data-name="blood strike">
+                <div class="game-thumb"><span class="thumb-title">Blood Strike</span></div>
+            </a>
+            <a href="product.html?game=walking-dead-survivors&title=The%20Walking%20Dead%3A%20Survivors" class="game-card" data-name="the walking dead survivors">
+                <div class="game-thumb"><span class="thumb-title">The Walking Dead: Survivors</span></div>
+            </a>
+            <a href="product.html?game=love-nikki&title=Love%20Nikki%20-%20Dress%20Up%20Queen" class="game-card" data-name="love nikki dress up queen">
+                <div class="game-thumb"><span class="thumb-title">Love Nikki - Dress Up Queen</span></div>
+            </a>
+            <a href="product.html?game=echocalypse&title=Echocalypse%3A%20Scarlet%20Covenant" class="game-card" data-name="echocalypse scarlet covenant">
+                <div class="game-thumb"><span class="thumb-title">Echocalypse: Scarlet Covenant</span></div>
+            </a>
+            <a href="product.html?game=super-sus&title=Super%20Sus" class="game-card" data-name="super sus">
+                <div class="game-thumb"><span class="thumb-title">Super Sus</span></div>
+            </a>
+            <a href="product.html?game=tomb-busters&title=Tomb%20Busters" class="game-card" data-name="tomb busters">
+                <div class="game-thumb"><span class="thumb-title">Tomb Busters</span></div>
+            </a>
+            <a href="product.html?game=wartune-ultra&title=Wartune%20Ultra" class="game-card" data-name="wartune ultra">
+                <div class="game-thumb"><span class="thumb-title">Wartune Ultra</span></div>
+            </a>
+            <a href="product.html?game=conquer&title=Conquer" class="game-card" data-name="conquer">
+                <div class="game-thumb"><span class="thumb-title">Conquer</span></div>
+            </a>
+            <a href="product.html?game=heroes-evolved&title=Heroes%20Evolved" class="game-card" data-name="heroes evolved">
+                <div class="game-thumb"><span class="thumb-title">Heroes Evolved</span></div>
+            </a>
+            <a href="product.html?game=sausage-man&title=Sausage%20Man" class="game-card" data-name="sausage man">
+                <div class="game-thumb"><span class="thumb-title">Sausage Man</span></div>
+            </a>
+            <a href="product.html?game=origin-of-elf-battle&title=Origin%20of%20Elf%20Battle" class="game-card" data-name="origin of elf battle">
+                <div class="game-thumb"><span class="thumb-title">Origin of Elf Battle</span></div>
+            </a>
+        </div>
+
+        <!-- Empty State (No results found) -->
+        <div id="emptyState" class="empty-state">
+            <h4 id="emptyTitle">No results found</h4>
+            <p id="emptySub" class="mb-0">Try another keyword.</p>
+        </div>
+
+    </div>
+
+    <!-- Account & Wallet Modal -->
+    <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="accountModalLabel">Account & Wallet Deposit</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 1. アカウント作成・保存 -->
+                    <div class="mb-4">
+                        <label for="usernameInput" id="accountSectionLabel" class="form-label fw-bold">1. Account Name (Create & Save)</label>
+                        <div class="input-group">
+                            <input type="text" id="usernameInput" class="form-control" placeholder="e.g. Player_01">
+                            <button type="button" id="saveAccountBtn" class="btn btn-outline-info">Save</button>
+                        </div>
+                        <small id="accountStatus" class="text-success d-block mt-1"></small>
+                    </div>
+
+                    <hr class="border-secondary">
+
+                    <!-- 2. Wallet 入金 -->
+                    <div>
+                        <label id="walletSectionLabel" class="form-label fw-bold">2. Wallet Deposit (Balance: ¥<span id="modalBalance">0</span>)</label>
+                        <div class="d-flex gap-2 mb-2 flex-wrap">
+                            <button type="button" class="btn btn-sm btn-outline-light topup-preset" data-amount="500">+¥500</button>
+                            <button type="button" class="btn btn-sm btn-outline-light topup-preset" data-amount="1000">+¥1,000</button>
+                            <button type="button" class="btn btn-sm btn-outline-light topup-preset" data-amount="3000">+¥3,000</button>
+                            <button type="button" class="btn btn-sm btn-outline-light topup-preset" data-amount="5000">+¥5,000</button>
+                        </div>
+                        <div class="input-group">
+                            <input type="number" id="depositAmountInput" class="form-control" min="1" step="1" placeholder="Amount (JPY)">
+                            <button type="button" id="depositBtn" class="btn btn-success fw-bold text-dark">Deposit</button>
+                        </div>
+                        <small id="depositStatus" class="text-info d-block mt-1"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Javascript for Language, Account, Wallet & Search -->
+    <script>
+        const STORAGE_KEYS = {
+            ACCOUNT: 'gameShopAccount',
+            BALANCE: 'gameShopWalletBalance',
+            LANG: 'gameShopLang'
+        };
+
+        const SUPPORTED_LANGS = ['en', 'ja', 'my'];
+
+        const I18N = {
+            en: {
+                htmlLang: 'en',
+                code: 'EN',
+                overlayTitle: 'Select Language',
+                overlaySub: 'Choose your preferred language',
+                uncreated: 'Not created',
+                searchPlaceholder: 'Search games...',
+                featuredHeading: '★ Featured Games',
+                emptyTitle: 'No results found',
+                emptySub: 'Try another keyword.',
+                modalTitle: 'Account & Wallet Deposit',
+                accountLabel: '1. Account Name (Create & Save)',
+                usernamePlaceholder: 'e.g. Player_01',
+                saveBtn: 'Save',
+                walletLabelPrefix: '2. Wallet Deposit (Balance: ¥',
+                depositPlaceholder: 'Amount (JPY)',
+                depositBtn: 'Deposit',
+                enterUsername: 'Please enter an account name.',
+                accountSaved: (name) => `Account "${name}" saved.`,
+                invalidAmount: 'Please enter an amount of 1 or more.',
+                deposited: (amt, bal) => `Deposited ¥${amt.toLocaleString()} (Balance: ¥${bal.toLocaleString()}).`
+            },
+            ja: {
+                htmlLang: 'ja',
+                code: 'JA',
+                overlayTitle: '言語を選択',
+                overlaySub: 'ショップで使用する言語を選んでください',
+                uncreated: '未作成',
+                searchPlaceholder: 'ゲームを検索...',
+                featuredHeading: '★ おすすめゲーム',
+                emptyTitle: '検索結果が見つかりません',
+                emptySub: '別のキーワードを試してください。',
+                modalTitle: 'アカウント & Wallet 入金',
+                accountLabel: '1. アカウント名（作成・保存）',
+                usernamePlaceholder: '例: Player_01',
+                saveBtn: '保存',
+                walletLabelPrefix: '2. Wallet 入金（現在残高: ¥',
+                depositPlaceholder: '入金額 (JPY)',
+                depositBtn: '入金する',
+                enterUsername: 'アカウント名を入力してください。',
+                accountSaved: (name) => `アカウント「${name}」を保存しました。`,
+                invalidAmount: '1以上の金額を入力してください。',
+                deposited: (amt, bal) => `¥${amt.toLocaleString()} を入金しました（残高: ¥${bal.toLocaleString()}）。`
+            },
+            my: {
+                htmlLang: 'my',
+                code: 'MY',
+                overlayTitle: 'ဘာသာစကား ရွေးချယ်ပါ',
+                overlaySub: 'အသုံးပြုလိုသော ဘာသာစကားကို ရွေးချယ်ပါ',
+                uncreated: 'မဖန်တီးရသေးပါ',
+                searchPlaceholder: 'ဂိမ်းများ ရှာဖွေပါ...',
+                featuredHeading: '★ ထင်ရှားသော ဂိမ်းများ',
+                emptyTitle: 'ရှာဖွေမှု ရလဒ် မတွေ့ပါ',
+                emptySub: 'အခြား စကားလုံးဖြင့် ထပ်စမ်းကြည့်ပါ။',
+                modalTitle: 'အကောင့် နှင့် Wallet ငွေဖြည့်ရန်',
+                accountLabel: '၁။ အကောင့်အမည် (ဖန်တီးပြီး သိမ်းဆည်းရန်)',
+                usernamePlaceholder: 'ဥပမာ - Player_01',
+                saveBtn: 'သိမ်းဆည်းမည်',
+                walletLabelPrefix: '၂။ Wallet ငွေဖြည့်ရန် (လက်ကျန်: ¥',
+                depositPlaceholder: 'ငွေပမာဏ (JPY)',
+                depositBtn: 'ငွေဖြည့်မည်',
+                enterUsername: 'ကျေးဇူးပြု၍ အကောင့်အမည် ထည့်သွင်းပါ။',
+                accountSaved: (name) => `အကောင့် "${name}" ကို သိမ်းဆည်းပြီးပါပြီ။`,
+                invalidAmount: '၁ သို့မဟုတ် ၁ ထက်ပိုသော ပမာဏ ထည့်သွင်းပါ။',
+                deposited: (amt, bal) => `¥${amt.toLocaleString()} ဖြည့်သွင်းပြီးပါပြီ (လက်ကျန်: ¥${bal.toLocaleString()})။`
+            }
+        };
+
+        function normalizeLang(lang) {
+            return SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+        }
+
+        function getSavedLang() {
+            try {
+                const lang = localStorage.getItem(STORAGE_KEYS.LANG);
+                return SUPPORTED_LANGS.includes(lang) ? lang : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function setSavedLang(lang) {
+            try {
+                localStorage.setItem(STORAGE_KEYS.LANG, normalizeLang(lang));
+            } catch {}
+        }
+
+        function getAccount() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.ACCOUNT);
+                return raw ? JSON.parse(raw) : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function saveAccount(username) {
+            const accountData = {
+                username: username,
+                createdAt: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEYS.ACCOUNT, JSON.stringify(accountData));
+            } catch {}
+            return accountData;
+        }
+
+        function getBalance() {
+            try {
+                const saved = parseInt(localStorage.getItem(STORAGE_KEYS.BALANCE) || '0', 10);
+                return Number.isNaN(saved) || saved < 0 ? 0 : saved;
+            } catch {
+                return 0;
+            }
+        }
+
+        function setBalance(amount) {
+            const safeAmount = Math.max(0, Math.floor(amount));
+            try {
+                localStorage.setItem(STORAGE_KEYS.BALANCE, String(safeAmount));
+            } catch {}
+            renderAccountAndWallet();
+        }
+
+        let activeLang = normalizeLang(getSavedLang() || 'en');
+
+        function renderAccountAndWallet() {
+            const t = I18N[activeLang];
+            const account = getAccount();
+            const balance = getBalance();
+
+            document.getElementById('coin').textContent = balance.toLocaleString();
+            document.getElementById('modalBalance').textContent = balance.toLocaleString();
+
+            const accountLabel = document.getElementById('accountLabel');
+            const usernameInput = document.getElementById('usernameInput');
+            if (account && account.username) {
+                accountLabel.textContent = `@${account.username}`;
+                if (!usernameInput.value) {
+                    usernameInput.value = account.username;
+                }
+            } else {
+                accountLabel.textContent = t.uncreated;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const langOverlay = document.getElementById('langOverlay');
+            const openLangOverlayBtn = document.getElementById('openLangOverlayBtn');
+            const langChoiceButtons = document.querySelectorAll('.lang-choice-btn');
+
+            function updateActiveChoiceButton(lang) {
+                langChoiceButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+                });
+            }
+
+            function applyLanguage(lang) {
+                activeLang = normalizeLang(lang);
+                const t = I18N[activeLang];
+
+                document.documentElement.lang = t.htmlLang;
+                document.getElementById('currentLangCode').textContent = t.code;
+                document.getElementById('langOverlayTitle').textContent = t.overlayTitle;
+                document.getElementById('langOverlaySub').textContent = t.overlaySub;
+                document.getElementById('searchInput').placeholder = t.searchPlaceholder;
+                document.getElementById('featuredHeading').textContent = t.featuredHeading;
+                document.getElementById('emptyTitle').textContent = t.emptyTitle;
+                document.getElementById('emptySub').textContent = t.emptySub;
+
+                document.getElementById('accountModalLabel').textContent = t.modalTitle;
+                document.getElementById('accountSectionLabel').textContent = t.accountLabel;
+                document.getElementById('usernameInput').placeholder = t.usernamePlaceholder;
+                document.getElementById('saveAccountBtn').textContent = t.saveBtn;
+
+                const currentBal = getBalance().toLocaleString();
+                document.getElementById('walletSectionLabel').innerHTML =
+                    `${t.walletLabelPrefix}<span id="modalBalance">${currentBal}</span>)`;
+                document.getElementById('depositAmountInput').placeholder = t.depositPlaceholder;
+                document.getElementById('depositBtn').textContent = t.depositBtn;
+
+                renderAccountAndWallet();
+                updateActiveChoiceButton(activeLang);
+            }
+
+            function openOverlay() {
+                updateActiveChoiceButton(activeLang);
+                langOverlay.classList.remove('d-none');
+            }
+
+            function closeOverlay() {
+                langOverlay.classList.add('d-none');
+            }
+
+            if (!getSavedLang()) {
+                openOverlay();
+            }
+            applyLanguage(activeLang);
+
+            openLangOverlayBtn.addEventListener('click', openOverlay);
+
+            langChoiceButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const chosenLang = normalizeLang(this.getAttribute('data-lang'));
+                    setSavedLang(chosenLang);
+                    applyLanguage(chosenLang);
+                    closeOverlay();
+                });
+            });
+
+            const saveAccountBtn = document.getElementById('saveAccountBtn');
+            const usernameInput = document.getElementById('usernameInput');
+            const accountStatus = document.getElementById('accountStatus');
+            const depositAmountInput = document.getElementById('depositAmountInput');
+            const depositBtn = document.getElementById('depositBtn');
+            const depositStatus = document.getElementById('depositStatus');
+
+            saveAccountBtn.addEventListener('click', function () {
+                const t = I18N[activeLang];
+                const name = usernameInput.value.trim();
+                if (!name) {
+                    accountStatus.className = 'text-warning d-block mt-1';
+                    accountStatus.textContent = t.enterUsername;
+                    return;
+                }
+                saveAccount(name);
+                renderAccountAndWallet();
+                accountStatus.className = 'text-success d-block mt-1';
+                accountStatus.textContent = t.accountSaved(name);
+            });
+
+            function addDeposit(amount) {
+                const t = I18N[activeLang];
+                if (!Number.isFinite(amount) || amount <= 0) {
+                    depositStatus.className = 'text-warning d-block mt-1';
+                    depositStatus.textContent = t.invalidAmount;
+                    return;
+                }
+                const intAmt = Math.floor(amount);
+                const nextBalance = getBalance() + intAmt;
+                setBalance(nextBalance);
+                depositAmountInput.value = '';
+                depositStatus.className = 'text-success d-block mt-1';
+                depositStatus.textContent = t.deposited(intAmt, nextBalance);
+            }
+
+            document.querySelectorAll('.topup-preset').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    addDeposit(parseInt(this.getAttribute('data-amount'), 10));
+                });
+            });
+
+            depositBtn.addEventListener('click', function () {
+                addDeposit(parseInt(depositAmountInput.value, 10));
+            });
+
+            // Search Filtering
+            const searchInput = document.getElementById('searchInput');
+            const items = document.querySelectorAll('.game-card');
+            const gamesGrid = document.getElementById('gamesGrid');
+            const emptyState = document.getElementById('emptyState');
+            const featuredHeading = document.getElementById('featuredHeading');
+
+            searchInput.addEventListener('input', function () {
+                const query = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                items.forEach(item => {
+                    const name = (item.getAttribute('data-name') || '').toLowerCase();
+                    const matches = name.includes(query);
+                    item.style.display = matches ? 'block' : 'none';
+                    if (matches) visibleCount++;
+                });
+
+                const hasResults = visibleCount > 0;
+                gamesGrid.style.display = hasResults ? 'grid' : 'none';
+                emptyState.style.display = hasResults ? 'none' : 'block';
+                featuredHeading.style.display = hasResults ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
